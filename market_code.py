@@ -16,7 +16,7 @@ Complete dashboard combining:
 - Macroeconomic Indicators
 - Price Reaction Analysis
 
-Run with: streamlit run app.py
+
 
 Author: Market Alert System
 Date: 2025-11-07
@@ -33,9 +33,6 @@ import time
 import requests
 import json
 
-# ===========================
-# PAGE CONFIG
-# ===========================
 st.set_page_config(
     page_title="Market Intelligence Dashboard",
     page_icon="📈",
