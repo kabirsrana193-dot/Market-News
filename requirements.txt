@@ -1,1 +1,6 @@
-streamlit==1.28.0feedparser==6.0.10transformers==4.35.0torch==2.1.0pandas==2.1.3plotly==5.18.0requests==2.31.0python-dateutil==2.8.2
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+transformers>=4.40
+feedparser>=6.0
+yfinance>=0.2.50
+pandas

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Market Pulse · FinBERT News Sentiment</title>
+  <meta name="description" content="Live market dashboard: latest financial news scored with FinBERT, plus an in-browser sentiment analyzer." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">◆</span>
+      <div>
+        <h1>Market Pulse</h1>
+        <p class="muted small">News sentiment powered by FinBERT</p>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="dashboard" role="tab" aria-selected="true">Dashboard</button>
+      <button class="tab" data-tab="analyzer" role="tab" aria-selected="false">Sentiment Analyzer</button>
+    </nav>
+    <div class="top-actions">
+      <span id="updated" class="muted small">Loading…</span>
+      <button id="reload" class="icon-btn" title="Reload data" aria-label="Reload data">⟳</button>
+      <button id="theme" class="icon-btn" title="Toggle theme" aria-label="Toggle theme">◐</button>
+    </div>
+  </header>
+
+  <div id="sample-banner" class="banner" hidden>
+    Showing <strong>sample data</strong>. Run the “Update news &amp; sentiment” workflow in your repo's Actions tab to load real news.
+  </div>
+
+  <!-- ============================ DASHBOARD ============================ -->
+  <main id="tab-dashboard" class="tab-panel">
+    <section class="ticker-strip" id="market" aria-label="Market overview"></section>
+
+    <section class="grid-3">
+      <article class="card mood-card">
+        <h2>Market mood <span class="muted small">· last 24h</span></h2>
+        <div class="mood-hero">
+          <span id="mood-score" class="hero-number">—</span>
+          <span id="mood-label" class="pill">—</span>
+        </div>
+        <div class="gauge" aria-hidden="true">
+          <div class="gauge-track"></div>
+          <div id="gauge-needle" class="gauge-needle"></div>
+        </div>
+        <div class="gauge-scale muted small"><span>Bearish −1</span><span>0</span><span>+1 Bullish</span></div>
+        <div id="mood-split" class="split-bar" role="img"></div>
+        <ul id="mood-legend" class="legend"></ul>
+      </article>
+
+      <article class="card span-2">
+        <div class="card-head">
+          <h2>Sentiment trend</h2>
+          <span class="muted small">Average FinBERT score of last-24h headlines, per update</span>
+        </div>
+        <div class="chart-box"><canvas id="trend-chart" aria-label="Sentiment trend chart"></canvas></div>
+      </article>
+    </section>
+
+    <section class="grid-2">
+      <article class="card">
+        <div class="card-head">
+          <h2>Watchlist sentiment</h2>
+          <span class="muted small">Click a row to filter news</span>
+        </div>
+        <table class="table" id="watchlist">
+          <thead><tr><th>Stock</th><th class="num">News</th><th>Mix</th><th class="num">Score</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <h2>Sentiment by source</h2>
+          <span class="muted small">Average score (sources with ≥3 articles)</span>
+        </div>
+        <div class="chart-box tall"><canvas id="source-chart" aria-label="Sentiment by source chart"></canvas></div>
+      </article>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Latest news <span id="news-count" class="muted small"></span></h2>
+      </div>
+      <div class="filters">
+        <input id="f-search" type="search" placeholder="Search headlines…" aria-label="Search headlines" />
+        <select id="f-sentiment" aria-label="Sentiment filter">
+          <option value="">All sentiment</option>
+          <option value="positive">▲ Positive</option>
+          <option value="neutral">● Neutral</option>
+          <option value="negative">▼ Negative</option>
+        </select>
+        <select id="f-source" aria-label="Source filter"><option value="">All sources</option></select>
+        <select id="f-ticker" aria-label="Stock filter"><option value="">All stocks</option></select>
+        <select id="f-time" aria-label="Time filter">
+          <option value="72">Last 72h</option>
+          <option value="24">Last 24h</option>
+          <option value="6">Last 6h</option>
+          <option value="1">Last 1h</option>
+        </select>
+        <select id="f-sort" aria-label="Sort">
+          <option value="time">Newest first</option>
+          <option value="pos">Most positive</option>
+          <option value="neg">Most negative</option>
+        </select>
+      </div>
+      <ul id="news" class="news-list"></ul>
+      <button id="more" class="btn ghost" hidden>Show more</button>
+    </section>
+  </main>
+
+  <!-- ============================ ANALYZER ============================ -->
+  <main id="tab-analyzer" class="tab-panel" hidden>
+    <section class="card analyzer">
+      <div class="card-head">
+        <h2>FinBERT sentiment analyzer</h2>
+        <span class="muted small">Runs the FinBERT model in your browser — nothing is sent to a server.</span>
+      </div>
+
+      <label for="az-input" class="small muted">Paste a headline, a paragraph, or several headlines (one per line)</label>
+      <textarea id="az-input" rows="6" placeholder="e.g. Reliance Q2 profit jumps 18%, beats street estimates"></textarea>
+
+      <div class="az-actions">
+        <button id="az-run" class="btn primary">Analyze</button>
+        <label class="check small"><input type="checkbox" id="az-lines" checked /> Treat each line as a separate headline</label>
+        <span id="az-status" class="muted small"></span>
+      </div>
+      <div id="az-progress" class="progress" hidden><div></div></div>
+
+      <div class="examples">
+        <span class="muted small">Try:</span>
+        <button class="chip" data-ex="Infosys raises FY guidance after strong deal wins; shares rally 5%">Infosys raises guidance</button>
+        <button class="chip" data-ex="RBI keeps repo rate unchanged at its policy meeting">RBI holds rates</button>
+        <button class="chip" data-ex="Adani group stocks crash after fresh allegations, investors lose billions">Adani stocks crash</button>
+        <button class="chip" data-ex="FIIs pull out ₹12,000 crore as rupee hits record low">FII outflows</button>
+      </div>
+
+      <div id="az-results"></div>
+    </section>
+  </main>
+
+  <footer class="footer muted small">
+    Data: public RSS feeds &amp; Yahoo Finance via yfinance · Model: <a href="https://huggingface.co/ProsusAI/finbert" target="_blank" rel="noopener">ProsusAI/FinBERT</a> ·
+    Not investment advice.
+  </footer>
+
+  <script src="app.js" defer></script>
+  <script type="module" src="analyzer.js"></script>
+</body>
+</html>
